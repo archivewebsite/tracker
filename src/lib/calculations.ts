@@ -16,6 +16,7 @@ export const MAX_TRYOUT_ROWS = 100;
 export const DEFAULT_TRYOUT_ROWS = 30;
 export const SCORE_MIN = 0;
 export const SCORE_MAX = 1200;
+const REMOVED_DEFAULT_PLATFORM = "Team Tanpa Les Indonesia";
 
 export const PUBLIC_THEME: ThemeSettings = {
   name: "Minimal",
@@ -99,7 +100,7 @@ export function createDefaultTryouts(count = DEFAULT_TRYOUT_ROWS): TryoutEntry[]
     id: cryptoSafeId(`tryout-${index + 1}`),
     entryNo: index + 1,
     date: "",
-    platform: index === 2 ? "Team Tanpa Les Indonesia" : "",
+    platform: "",
     scores: createEmptyScores(),
     average: null,
   }));
@@ -116,6 +117,7 @@ export function ensureTryoutRows(rows: TryoutEntry[]): TryoutEntry[] {
     if (existing) {
       return {
         ...existing,
+        platform: existing.platform === REMOVED_DEFAULT_PLATFORM ? "" : existing.platform,
         scores: { ...createEmptyScores(), ...existing.scores },
         average: calculateTryoutAverage({ ...createEmptyScores(), ...existing.scores }),
       };

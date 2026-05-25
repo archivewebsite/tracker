@@ -13,9 +13,13 @@
   "dependencies": {
     "@iconify/react": "^6.0.2",
     "@supabase/supabase-js": "^2.87.1",
+    "antd": "^6.4.3",
+    "baseui": "^16.1.1",
     "chart.js": "^4.5.1",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "styletron-engine-monolithic": "^1.0.0",
+    "styletron-react": "^6.1.1"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

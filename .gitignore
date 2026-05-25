@@ -3,6 +3,7 @@ node_modules/
 
 # build output
 dist/
+dist-ssr/
 coverage/
 .vite/
 *.tsbuildinfo
@@ -13,14 +14,25 @@ coverage/
 .env.*.local
 !.env.example
 
+# Supabase local development
+supabase/.temp/
+supabase/.branches/
+
 # Vercel
 .vercel/
 
 # test and tooling artifacts
 test-results/
 playwright-report/
+blob-report/
+playwright/.cache/
 .playwright-mcp/
 .codex-*
+.vitest/
+.vitest-cache/
+.vitest-dump
+.eslintcache
+.prettiercache
 
 # logs
 *.log
@@ -32,5 +44,6 @@ pnpm-debug.log*
 # OS and editor noise
 .DS_Store
 Thumbs.db
+desktop.ini
 .idea/
 .vscode/

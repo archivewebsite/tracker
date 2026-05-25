@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
+import Collapse from "antd/es/collapse";
+import { Tab, Tabs } from "baseui/tabs-motion";
 import type { Session } from "@supabase/supabase-js";
 import { AuthPanel } from "./components/AuthPanel";
 import { ScoreChart, TryoutChart } from "./components/Charts";
@@ -40,6 +42,7 @@ import type {
 
 type ViewKey = "dashboard" | "checklist" | "tryout" | "kalkulator" | "profil";
 type TryoutPatch = Omit<Partial<TryoutEntry>, "scores"> & { scores?: Partial<TryoutScores> };
+const CALCULATOR_CHART_SCORE_KEYS = new Set<ScoreKey>(["pbm", "ppu", "pk", "lbi", "lbe"]);
 
 const VIEWS: Array<{ id: ViewKey; label: string; icon: string }> = [
   { id: "dashboard", label: "Dashboard", icon: "solar:home-smile-linear" },
@@ -50,6 +53,38 @@ const VIEWS: Array<{ id: ViewKey; label: string; icon: string }> = [
 ];
 
 const CHECKLIST_SECTION_STORAGE_KEY = "tracker-checklist-sections-v1";
+
+function ViewTabs({
+  activeView,
+  className,
+  idPrefix,
+  onChange,
+}: {
+  activeView: ViewKey;
+  className: string;
+  idPrefix: string;
+  onChange: (view: ViewKey) => void;
+}) {
+  return (
+    <nav className={className} aria-label="Navigasi" role="tablist">
+      {VIEWS.map((item) => (
+        <button
+          aria-controls={`view-panel-${item.id}`}
+          aria-selected={activeView === item.id}
+          className={activeView === item.id ? "is-active" : ""}
+          id={`${idPrefix}-${item.id}`}
+          key={item.id}
+          onClick={() => onChange(item.id)}
+          role="tab"
+          type="button"
+        >
+          <Icon icon={item.icon} />
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
 
 function App() {
   const [authConfigured, setAuthConfigured] = useState(false);
@@ -191,58 +226,44 @@ function App() {
     setStatus("Mode demo");
   }
 
+  const activeViewLabel = VIEWS.find((item) => item.id === view)?.label;
+
   return (
     <main className="app-shell">
-      <aside className="sidebar">
+      <header className="app-header">
         <div className="brand-block">
           <Icon className="brand-mark" icon="solar:chart-2-bold-duotone" />
           <div>
+            <span className="eyebrow">{userId ? "Cloud" : "Demo"}</span>
             <strong>Tracker</strong>
           </div>
         </div>
-        <nav className="nav-list" aria-label="Navigasi">
-          {VIEWS.map((item) => (
-            <button
-              className={view === item.id ? "is-active" : ""}
-              key={item.id}
-              onClick={() => setView(item.id)}
-              type="button"
-            >
-              <Icon icon={item.icon} />
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-footer">
-          <span>{userId ? email : status}</span>
+        <ViewTabs activeView={view} className="nav-list" idPrefix="main-tab" onChange={setView} />
+        <div className="topbar-actions">
           {userId ? (
             <button className="ghost-button" onClick={handleSignOut} type="button">
               <Icon icon="solar:logout-2-linear" />
               Keluar
             </button>
           ) : (
-            <button className="ghost-button" onClick={() => setView("profil")} type="button">
-              <Icon icon="solar:cloud-upload-linear" />
-              Simpan
+            <button className="primary-button" onClick={() => setView("profil")} type="button">
+              <Icon icon="solar:user-rounded-linear" />
+              Masuk
             </button>
           )}
         </div>
-      </aside>
+      </header>
 
-      <section className="workspace">
+      <section
+        aria-label={activeViewLabel}
+        className="workspace"
+        id={`view-panel-${view}`}
+        role="tabpanel"
+      >
         <header className="topbar">
           <div>
-            <span className="eyebrow">{userId ? "Cloud" : "Demo"}</span>
-            <h1>{VIEWS.find((item) => item.id === view)?.label}</h1>
-          </div>
-          <div className="topbar-actions">
-            <span className="status-pill">{isLoading ? "Memuat" : status}</span>
-            {!userId && (
-              <button className="primary-button" onClick={() => setView("profil")} type="button">
-                <Icon icon="solar:user-rounded-linear" />
-                Masuk
-              </button>
-            )}
+            <span className="eyebrow">{userId ? email : status}</span>
+            <h1>{activeViewLabel}</h1>
           </div>
         </header>
 
@@ -264,6 +285,8 @@ function App() {
           />
         )}
       </section>
+
+      <ViewTabs activeView={view} className="bottom-tabs" idPrefix="bottom-tab" onChange={setView} />
     </main>
   );
 }
@@ -399,7 +422,10 @@ function ChecklistView({
                   onClick={() => toggleSection(name)}
                   type="button"
                 >
-                  <span className="section-chevron">{isExpanded ? "V" : ">"}</span>
+                  <Icon
+                    className="section-chevron"
+                    icon={isExpanded ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-right-linear"}
+                  />
                   <span>{name}</span>
                   <strong>{rows.length}</strong>
                 </button>
@@ -595,12 +621,15 @@ function CalculatorView({
     lbe: 0,
     pm: 0,
   });
-  const [chartType, setChartType] = useState<"bar" | "radar" | "line">("bar");
   const [targetRow, setTargetRow] = useState(1);
   const [platform, setPlatform] = useState("Kalkulator SNBT");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const calculation = useMemo(() => calculateSnbtScores(answers), [answers]);
+  const chartResults = useMemo(
+    () => calculation.results.filter((result) => CALCULATOR_CHART_SCORE_KEYS.has(result.id)),
+    [calculation.results],
+  );
 
   function updateAnswer(key: ScoreKey, value: string) {
     const subtest = SNBT_SUBTESTS.find((item) => item.id === key);
@@ -649,23 +678,11 @@ function CalculatorView({
           </div>
         </div>
         <div className="panel">
-          <div className="panel-heading chart-tabs">
+          <div className="panel-heading">
             <span>Grafik</span>
-            <div>
-              {(["bar", "radar", "line"] as const).map((type) => (
-                <button
-                  className={chartType === type ? "is-active" : ""}
-                  key={type}
-                  onClick={() => setChartType(type)}
-                  type="button"
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
           </div>
           <div className="chart-box">
-            <ScoreChart chartType={chartType} results={calculation.results} theme={data.profile.theme} />
+            <ScoreChart results={chartResults} theme={data.profile.theme} />
           </div>
         </div>
       </section>
@@ -713,6 +730,14 @@ function ProfileView({
   onProfile: (profile: UserProfile) => void;
 }) {
   const profile = data.profile;
+  const [activeTab, setActiveTab] = useState<"akun" | "profil" | "tema">("profil");
+  const visibleActiveTab = isLoggedIn && activeTab === "akun" ? "profil" : activeTab;
+
+  useEffect(() => {
+    if (isLoggedIn && activeTab === "akun") {
+      setActiveTab("profil");
+    }
+  }, [activeTab, isLoggedIn]);
 
   function patchProfile(patch: Partial<UserProfile>) {
     onProfile({ ...profile, ...patch });
@@ -722,51 +747,85 @@ function ProfileView({
     patchProfile({ theme: { ...profile.theme, [key]: value } });
   }
 
+  const themeFields = ([
+    ["primary", "Utama"],
+    ["accent", "Aksen"],
+    ["graphA", "Grafik A"],
+    ["graphB", "Grafik B"],
+    ["graphC", "Grafik C"],
+    ["background", "Latar"],
+    ["surface", "Panel"],
+  ] as Array<[keyof ThemeSettings, string]>).map(([key, label]) => (
+    <label className="color-field" key={key}>
+      {label}
+      <input onChange={(event) => patchTheme(key, event.target.value)} type="color" value={profile.theme[key]} />
+    </label>
+  ));
+
   return (
     <div className="profile-grid">
-      {!isLoggedIn && (
-        <AuthPanel
-          configured={authConfigured}
-          mode={authMode}
-          onModeChange={onAuthMode}
-          onSuccess={onAuthSuccess}
-        />
-      )}
-      <section className="panel profile-form">
-        <div className="panel-heading">
-          <span>Profil</span>
+      <section className="profile-settings" aria-label="Pengaturan akun">
+        <div className="settings-tabs">
+          <Tabs
+            activeKey={visibleActiveTab}
+            onChange={({ activeKey }) => setActiveTab(activeKey as "akun" | "profil" | "tema")}
+            renderAll
+            uid="profile-settings"
+          >
+            {!isLoggedIn && (
+              <Tab key="akun" title="Akun">
+                <div className="settings-tab-panel">
+                  <AuthPanel
+                    configured={authConfigured}
+                    mode={authMode}
+                    onModeChange={onAuthMode}
+                    onSuccess={onAuthSuccess}
+                  />
+                </div>
+              </Tab>
+            )}
+            <Tab key="profil" title="Profil">
+              <div className="settings-tab-panel profile-form">
+                <div className="panel-heading">
+                  <span>Profil</span>
+                </div>
+                <label>
+                  Nama
+                  <input onChange={(event) => patchProfile({ displayName: event.target.value })} value={profile.displayName} />
+                </label>
+                <label>
+                  Perguruan Tinggi
+                  <input onChange={(event) => patchProfile({ university: event.target.value })} value={profile.university} />
+                </label>
+                <label>
+                  Program Studi
+                  <input onChange={(event) => patchProfile({ studyProgram: event.target.value })} value={profile.studyProgram} />
+                </label>
+              </div>
+            </Tab>
+            <Tab key="tema" title="Tema">
+              <div className="settings-tab-panel">
+                <div className="panel-heading">
+                  <span>Tema</span>
+                </div>
+                <Collapse
+                  bordered={false}
+                  className="theme-collapse"
+                  defaultActiveKey={[]}
+                  expandIconPlacement="end"
+                  items={[
+                    {
+                      children: <div className="theme-form">{themeFields}</div>,
+                      key: "warna",
+                      label: <span>Warna</span>,
+                    },
+                  ]}
+                  size="small"
+                />
+              </div>
+            </Tab>
+          </Tabs>
         </div>
-        <label>
-          Nama
-          <input onChange={(event) => patchProfile({ displayName: event.target.value })} value={profile.displayName} />
-        </label>
-        <label>
-          Perguruan Tinggi
-          <input onChange={(event) => patchProfile({ university: event.target.value })} value={profile.university} />
-        </label>
-        <label>
-          Program Studi
-          <input onChange={(event) => patchProfile({ studyProgram: event.target.value })} value={profile.studyProgram} />
-        </label>
-      </section>
-      <section className="panel theme-form">
-        <div className="panel-heading">
-          <span>Tema</span>
-        </div>
-        {([
-          ["primary", "Utama"],
-          ["accent", "Aksen"],
-          ["graphA", "Grafik A"],
-          ["graphB", "Grafik B"],
-          ["graphC", "Grafik C"],
-          ["background", "Latar"],
-          ["surface", "Panel"],
-        ] as Array<[keyof ThemeSettings, string]>).map(([key, label]) => (
-          <label className="color-field" key={key}>
-            {label}
-            <input onChange={(event) => patchTheme(key, event.target.value)} type="color" value={profile.theme[key]} />
-          </label>
-        ))}
       </section>
     </div>
   );

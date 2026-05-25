@@ -4,6 +4,7 @@ import {
   calculateSnbtScores,
   calculateTryoutAverage,
   createDefaultTryouts,
+  ensureTryoutRows,
   MAX_TRYOUT_ROWS,
   normalizeScoreInput,
   summarizeChecklist,
@@ -13,7 +14,15 @@ import type { ChecklistState, ScoreKey } from "../src/types/domain";
 
 describe("tryout calculations", () => {
   it("creates 30 default rows", () => {
-    expect(createDefaultTryouts()).toHaveLength(30);
+    const rows = createDefaultTryouts();
+    expect(rows).toHaveLength(30);
+    expect(rows.every((row) => row.platform === "")).toBe(true);
+  });
+
+  it("removes the old seeded platform from existing default rows", () => {
+    const rows = createDefaultTryouts();
+    rows[2] = { ...rows[2], platform: "Team Tanpa Les Indonesia" };
+    expect(ensureTryoutRows(rows)[2].platform).toBe("");
   });
 
   it("does not add rows beyond 100", () => {

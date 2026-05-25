@@ -47,9 +47,6 @@ export function AuthPanel({ mode, onModeChange, onSuccess, configured }: AuthPan
 
   return (
     <section className="auth-card" aria-label={mode === "masuk" ? "Masuk" : "Daftar"}>
-      <div className="auth-card__mark">
-        <Icon icon="solar:shield-user-linear" />
-      </div>
       <div className="auth-card__tabs">
         <button
           className={mode === "masuk" ? "is-active" : ""}
@@ -89,7 +86,7 @@ export function AuthPanel({ mode, onModeChange, onSuccess, configured }: AuthPan
             value={password}
           />
         </label>
-        {message && <p className="form-message">{message}</p>}
+        {message && <div className="form-message" role="status">{message}</div>}
         <button className="primary-button" disabled={isBusy} type="submit">
           <Icon icon={mode === "masuk" ? "solar:login-3-linear" : "solar:user-plus-linear"} />
           {isBusy ? "Memproses" : mode === "masuk" ? "Masuk" : "Buat akun"}

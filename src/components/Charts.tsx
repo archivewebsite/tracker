@@ -1,7 +1,5 @@
 import { useEffect, useRef } from "react";
 import {
-  BarController,
-  BarElement,
   CategoryScale,
   Chart,
   Filler,
@@ -10,16 +8,12 @@ import {
   LineElement,
   LinearScale,
   PointElement,
-  RadarController,
-  RadialLinearScale,
   Tooltip,
 } from "chart.js";
 import { SCORE_KEYS, SCORE_LABELS } from "../data/snbt";
 import type { SnbtResult, ThemeSettings, TryoutEntry } from "../types/domain";
 
 Chart.register(
-  BarController,
-  BarElement,
   CategoryScale,
   Filler,
   Legend,
@@ -27,8 +21,6 @@ Chart.register(
   LineElement,
   LinearScale,
   PointElement,
-  RadarController,
-  RadialLinearScale,
   Tooltip,
 );
 
@@ -39,7 +31,6 @@ type TryoutChartProps = {
 
 type ScoreChartProps = {
   results: SnbtResult[];
-  chartType: "bar" | "radar" | "line";
   theme: ThemeSettings;
 };
 
@@ -70,20 +61,6 @@ export function TryoutChart({ entries, theme }: TryoutChartProps) {
             fill: true,
             pointRadius: 4,
           },
-          {
-            label: "PU",
-            data: completeRows.map((entry) => entry.scores.pu ?? null),
-            borderColor: theme.graphB,
-            backgroundColor: withAlpha(theme.graphB, 0.14),
-            tension: 0.28,
-          },
-          {
-            label: "PM",
-            data: completeRows.map((entry) => entry.scores.pm ?? null),
-            borderColor: theme.graphC,
-            backgroundColor: withAlpha(theme.graphC, 0.14),
-            tension: 0.28,
-          },
         ],
       },
       options: {
@@ -111,7 +88,7 @@ export function TryoutChart({ entries, theme }: TryoutChartProps) {
   return <canvas aria-label="Grafik tryout" ref={canvasRef} />;
 }
 
-export function ScoreChart({ results, chartType, theme }: ScoreChartProps) {
+export function ScoreChart({ results, theme }: ScoreChartProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -125,7 +102,7 @@ export function ScoreChart({ results, chartType, theme }: ScoreChartProps) {
     const maxScores = results.map((result) => result.maxScore);
 
     const chart = new Chart(canvas, {
-      type: chartType,
+      type: "line",
       data: {
         labels,
         datasets: [
@@ -133,15 +110,15 @@ export function ScoreChart({ results, chartType, theme }: ScoreChartProps) {
             label: "Skor",
             data: userScores,
             borderColor: theme.graphA,
-            backgroundColor: withAlpha(theme.graphA, chartType === "radar" ? 0.2 : 0.42),
-            fill: chartType !== "bar",
+            backgroundColor: withAlpha(theme.graphA, 0.18),
+            fill: true,
             tension: 0.32,
           },
           {
             label: "Maksimum",
             data: maxScores,
             borderColor: theme.graphC,
-            backgroundColor: withAlpha(theme.graphC, chartType === "radar" ? 0.12 : 0.24),
+            backgroundColor: withAlpha(theme.graphC, 0.14),
             fill: false,
             tension: 0.24,
           },
@@ -154,32 +131,20 @@ export function ScoreChart({ results, chartType, theme }: ScoreChartProps) {
           legend: { position: "bottom", labels: { color: theme.text, boxWidth: 12 } },
           tooltip: { intersect: false, mode: "index" },
         },
-        scales:
-          chartType === "radar"
-            ? {
-                r: {
-                  min: 0,
-                  max: 1000,
-                  pointLabels: { color: theme.text },
-                  grid: { color: withAlpha(theme.muted, 0.16) },
-                  angleLines: { color: withAlpha(theme.muted, 0.16) },
-                  ticks: { color: theme.muted, backdropColor: "transparent" },
-                },
-              }
-            : {
-                x: { ticks: { color: theme.muted }, grid: { display: false } },
-                y: {
-                  min: 0,
-                  max: 1000,
-                  ticks: { color: theme.muted },
-                  grid: { color: withAlpha(theme.muted, 0.16) },
-                },
-              },
+        scales: {
+          x: { ticks: { color: theme.muted }, grid: { display: false } },
+          y: {
+            min: 0,
+            max: 1000,
+            ticks: { color: theme.muted },
+            grid: { color: withAlpha(theme.muted, 0.16) },
+          },
+        },
       },
     });
 
     return () => chart.destroy();
-  }, [results, chartType, theme]);
+  }, [results, theme]);
 
   return <canvas aria-label="Grafik skor SNBT" ref={canvasRef} />;
 }
